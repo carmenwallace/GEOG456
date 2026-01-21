@@ -27,15 +27,29 @@
 
             // create custom icon variable
             var flagIcon = L.icon({ // notice the L.icon which is a Leaflet object with properties
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/261/261335.png',
+             iconUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTB_BHBz1sY9p45p31ypvd6YMKtoRJ0neuRzDPmleax5SZytlFP7T5-xZI&s.jpg',
+            // 'https://cdn-icons-png.flaticon.com/512/261/261335.png',
             // this points to a jpg image obtained from the internet
-            iconSize: [75,75], // size of the icon
-            popupAnchor: [0,0] // where the icon is located relative to the lat lon of the point. 
+            iconSize: [50,50], // size of the icon
+             popupAnchor: [0,0] // where the icon is located relative to the lat lon of the point. 
              });
+             var flag = {
+                "type": "FeatureCollection",
+                "features": [
+                  {
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                      "type": "Point",
+                      "coordinates": [-6.08376407411639,53.190644804218216]
+                    }
+                  }
+                ]
+              };
             // create an HTML variable that will pop up with a UNC Well photo
-             var customPopup = "'flag <br/><img src=https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSOMtR9sWzw8KkSoBzRKEAqsJG7MOAknVf7Hw&s' width = 100px";
-
-            L.geoJSON(flagIcon, { // a
+            // var customPopup = "'flag <br/><img src=https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSOMtR9sWzw8KkSoBzRKEAqsJG7MOAknVf7Hw&s' width = 100px";
+            var customPopup = "Bray Head <br/><img src='https://europeantourismorganization.eu/wp-content/uploads/2021/04/93.4-1536x1151.jpg' width='300px' />";
+            L.geoJSON(flag, { // a
                 pointToLayer: function (feature, latlng) { // b
                 return L.marker(latlng, {icon: flagIcon});}}) // c
                 .bindPopup(customPopup) // d
