@@ -21,9 +21,9 @@
     <script>
         var map = L.map('mapid').setView([53.19,-6.08], 17);
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(map)
-        L.marker([53.190644804218216, -6.08376407411639]).addTo(map)
-            .bindPopup("Bray Head (Ceann Bhré) Cliff Walk ")
-            .openPopup();
+       //L.marker([53.190644804218216, -6.08376407411639]).addTo(map)
+            //.bindPopup("Bray Head (Ceann Bhré) Cliff Walk ")
+            //.openPopup();
 
             // create custom icon variable
             var flagIcon = L.icon({ // notice the L.icon which is a Leaflet object with properties
@@ -48,7 +48,7 @@
               };
             // create an HTML variable that will pop up with a UNC Well photo
             // var customPopup = "'flag <br/><img src=https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSOMtR9sWzw8KkSoBzRKEAqsJG7MOAknVf7Hw&s' width = 100px";
-            var customPopup = "Bray Head <br/><img src='https://europeantourismorganization.eu/wp-content/uploads/2021/04/93.4-1536x1151.jpg' width='300px' />";
+            var customPopup = "Bray Head (Ceann Bhré) Cliff Walk  <br/><img src='https://europeantourismorganization.eu/wp-content/uploads/2021/04/93.4-1536x1151.jpg' width='300px' />";
             L.geoJSON(flag, { // a
                 pointToLayer: function (feature, latlng) { // b
                 return L.marker(latlng, {icon: flagIcon});}}) // c
