@@ -1,0 +1,60 @@
+
+<html>
+    <head>
+        <title>My Map</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+        <script src="./tramstops.js" ></script>
+    </head>
+    <body>
+    <div id="mapid"></div>
+    
+    <style>
+        #mapid{ width: 900px; height: 500px; }
+    </style>
+    <script>  
+
+    var map = L.map('mapid').setView([55.9, -3.2], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+   
+    function makeIcon(size) {
+        var dim = size
+        var tramIcon = L.icon({    // notice the L.icon which is a Leaflet object with properties
+        iconUrl: './tram.png',
+          // this points to a jpg image obtained from the internet
+        iconSize: [20,20], // size of the icon
+        popupAnchor: [0,0] // where the icon is located relative to the lat lon of the point. 
+        });
+    return tramIcon
+    }
+        function getTramName(Name) {
+            return Name
+        }
+
+       // var customPopup = "Bus Stop<br/><img src='link' width='100px'/>";
+ 
+       L.geoJSON(tram, {
+    pointToLayer: function (feature, latlng) {
+       //return L.marker(latlng, {icon: makeIcon(feature.properties.INTENSITY)});}}) // c
+    //.bindPopup(customPopup) // d
+   return L.marker(latlng,{icon: tramIcon})
+   .bindPopup(getTramName(feature.properties.Name));
+     }}) .addTo(map); // 
+
+      //  L.geoJSON(tram, {
+   // pointToLayer: function (feature, latlng) {
+        
+      //  return L.circleMarker(latlng, circleIcon(size)).bindPopup(getHurricaneCategory(feature.properties.INTENSITY));
+    
+       // }).addTo(map); 
+   // end of script
+   </script>
+   </body>
+</html>
