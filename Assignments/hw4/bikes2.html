@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bikes Table</title>
+</head>
+<body>
+    <table id="mytable">
+        <tr>
+            <th>Name</th>
+            <th>Number of Bikes Available</th>
+        </tr>
+    </table>
+
+    <script src="./Data.js"></script>
+    <script>
+        var x = document.getElementById('mytable');
+      
+        for (var i = 0; i < data.length; i++) {
+            var myNewRow = document.createElement('tr');
+            var myNewCell1 = document.createElement('td');
+            var myNewCell2 = document.createElement('td');
+
+            myNewCell1.innerHTML = data[i].Name;
+            myNewCell2.innerHTML = data[i].num_bikes_available;
+
+            myNewRow.appendChild(myNewCell1);
+            myNewRow.appendChild(myNewCell2);
+            x.appendChild(myNewRow);
+        }
+    </script>
+</body>
+</html>
