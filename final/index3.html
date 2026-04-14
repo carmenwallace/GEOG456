@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>ELACC Gold Line Developments</title>
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+ <style>
+   body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+   #map { height: 100vh; width: 100%; }
+
+   /* --- HOUSE ICON STYLING --- */
+   .house-icon {
+       width: 20px;
+       height: 20px;
+       position: relative;
+   }
+
+   .house-base {
+       width: 16px;
+       height: 12px;
+       background-color: cyan;
+       position: absolute;
+       bottom: 0;
+       left: 2px;
+       border: 1px solid #333;
+   }
+
+   .house-roof {
+       width: 0;
+       height: 0;
+       border-left: 10px solid transparent;
+       border-right: 10px solid transparent;
+       border-bottom: 8px solid #333;
+       position: absolute;
+       top: 0;
+       left: 0;
+   }
+
+   .house-modern .house-base {
+       background-color: blue;
+       border-color: #000;
+   }
+
+   .slider-container {
+     background: white;
+     padding: 15px;
+     border-radius: 8px;
+     box-shadow: 0 0 15px rgba(0,0,0,0.2);
+     min-width: 200px;
+   }
+ </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script src="./metro_line.js"></script>
+<script src="./TOD.js"></script>
+<script src="./metro_stops.js"></script>
+<script src="./all_houses.js"></script> <script>
+ // Initialize Map
+ const map = L.map('map').setView([34.0406, -118.2118], 13);
+
+ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+   attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+   ext: 'png'
+ }).addTo(map);
+
+ // 1. DEFINE LAYER GROUPS
+ const todLayerGroup = L.layerGroup().addTo(map);
+ const metroLayerGroup = L.layerGroup().addTo(map);
+ const allHousesLayerGroup = L.layerGroup(); // Created but not added to map yet (off by default)
+
+ // 2. POPULATE ALL HOUSES LAYER (Static)
+ if (window.allHouses) {
+    L.geoJSON(window.allHouses, {
+        pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+                radius: 4,
+                fillColor: "#888",
+                color: "#000",
+                weight: 1,
+                fillOpacity: 0.5
+            });
+        },
+        onEachFeature: (feature, layer) => {
+            layer.bindPopup(`<b>Area Housing</b><br>${feature.properties.address || "Address unknown"}`);
+        }
+    }).addTo(allHousesLayerGroup);
+ }
+
+ // 3. ADD LAYER CONTROL
+ const overlays = {
+    "ELACC TOD Houses": todLayerGroup,
+    "All Area Housing": allHousesLayerGroup,
+    "Metro Infrastructure": metroLayerGroup
+ };
+
+ L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+
+ // 4. CORE UPDATE FUNCTION (Dynamic TOD and Metro)
+ function updateMap(year) {
+    todLayerGroup.clearLayers();
+    metroLayerGroup.clearLayers();
+
+    if (window.TOD) {
+        const filteredFeatures = window.TOD.features.filter(f => f.properties.year <= year);
+        
+        L.geoJSON({ type: "FeatureCollection", features: filteredFeatures }, {
+            pointToLayer: (feature, latlng) => {
+                const isAfter2009 = feature.properties.year > 2009;
+                const houseHtml = `
+                    <div class="house-icon ${isAfter2009 ? 'house-modern' : ''}">
+                        <div class="house-roof"></div>
+                        <div class="house-base"></div>
+                    </div>
+                `;
+                return L.marker(latlng, { 
+                    icon: L.divIcon({
+                        html: houseHtml,
+                        className: '',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 20]
+                    }) 
+                });
+            },
+            onEachFeature: (feature, layer) => {
+                layer.bindPopup(`<b>${feature.properties.name}</b><br>Built: ${feature.properties.year}`);
+            }
+        }).addTo(todLayerGroup);
+    }
+
+    if (year >= 2009 && window.metro) {
+        L.geoJSON(window.metro, {
+            style: (feature) => {
+                const isGold = feature.properties?.NAME === "Gold Line";
+                return isGold
+                    ? { color: "#FFD700", weight: 6, opacity: 1 } 
+                    : { color: "#999999", weight: 2, opacity: 0.4 };
+            }
+        }).addTo(metroLayerGroup);
+    }
+ }
+
+ // --- SLIDER CONTROL ---
+ const sliderControl = L.control({ position: 'topright' });
+ sliderControl.onAdd = function () {
+    const div = L.DomUtil.create('div', 'slider-container');
+    div.innerHTML = `
+        <label for="yearSlider"><b>Year:</b> <span id="yearValue">1996</span></label><br>
+        <input id="yearSlider" type="range" min="1996" max="2015" step="1" value="1996" style="width:100%" />
+    `;
+    L.DomEvent.disableClickPropagation(div); // Prevent map clicks through the slider container
+    return div;
+ };
+ sliderControl.addTo(map);
+
+ const yearSlider = document.getElementById('yearSlider');
+ const yearValue = document.getElementById('yearValue');
+
+ yearSlider.addEventListener('input', (e) => {
+    const year = parseInt(e.target.value, 10);
+    yearValue.textContent = year;
+    updateMap(year); 
+ });
+
+ // Interaction Fixes
+ yearSlider.addEventListener('mousedown', () => map.dragging.disable());
+ window.addEventListener('mouseup', () => map.dragging.enable());
+
+ // Title Control
+ const title = L.control({ position: 'topright' });
+ title.onAdd = () => {
+   const div = L.DomUtil.create('div');
+   div.innerHTML = `<div style="background:white; padding:10px; border-radius:6px; margin-bottom:10px; border: 1px solid #ccc;">
+     <b>ELACC Housing Growth & Metro Expansion</b>
+   </div>`;
+   return div;
+ };
+ title.addTo(map);
+
+ // Initial Run
+ updateMap(1996);
+
+</script>
+</body>
+</html>

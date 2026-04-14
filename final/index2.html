@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Relocation Data</title>
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+ <style>
+   body, html { margin: 0; padding: 0; height: 100%; }
+   #map { height: 100vh; width: 100%; }
+ </style>
+</head>
+<body>
+
+
+<div id="map"></div>
+
+
+<script src="./metro_line.js"></script>
+<script src="./TOD.js"></script>
+<script src="./metro_stops.js"></script>
+
+
+<script>
+ const map = L.map('map').setView([34.0522, -118.230], 13);
+
+
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+   attribution: '© OpenStreetMap contributors'
+ }).addTo(map);
+
+
+ // Add metro lines
+if (window.metro) {
+ L.geoJSON(window.metro, {
+   style: (feature) => {
+     const isGold = feature.properties?.NAME === "Gold Line";
+     return isGold
+       ? { color: "#FFD700", weight: 6, opacity: 1 }     // Gold Line: thick + bright
+       : { color: "#999999", weight: 2, opacity: 0.4 };  // Others: thin + faded
+   }
+ }).addTo(map);
+} else console.error("Metro data not loaded");
+
+
+
+
+
+
+ // Add metro stops
+ if (window.metroStops) {
+   L.geoJSON(window.metroStops, {
+     pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+       radius: 5,
+       fillColor: "#FFD700",
+       color: "#333",
+       weight: 1,
+       opacity: 1,
+       fillOpacity: 0.9
+     }),
+     onEachFeature: (feature, layer) => {
+ const name = feature.properties?.Station || "Unknown Stop";
+ const line = feature.properties?.MetroLine || "";
+ const stop = feature.properties?.StopNumber || "";
+ layer.bindPopup(`
+   <b>${name}</b><br>
+   ${line ? `Line: ${line}<br>` : ""}
+ `);
+}
+   }).addTo(map);
+ } else console.error("Metro stops data not loaded");
+
+
+ // Title
+ const title = L.control({ position: 'topright' });
+ title.onAdd = () => {
+   const div = L.DomUtil.create('div');
+   div.innerHTML = `<div style="background:white; padding:10px; border-radius:6px; font-family:sans-serif;">
+     <b>ELACC Developments along the Gold Line</b><br>
+     <span style="font-size:12px;">Boyle Heights, Los Angeles</span>
+   </div>`;
+   return div;
+ };
+ title.addTo(map);
+
+
+ // Legend
+ const legend = L.control({ position: 'bottomright' });
+ legend.onAdd = () => {
+   const div = L.DomUtil.create('div');
+   div.innerHTML = `<div style="background:white; padding:10px; border-radius:6px; font-family:sans-serif; font-size:13px;">
+     <b>Legend</b><br>
+     <span style="color:orange;">━━</span> Gold Line<br>
+     <span style="color:#FFD700;">●</span> Metro Stops<br>
+     <span style="color:blue;">●</span> Nonprofit Developments
+   </div>`;
+   return div;
+ };
+ legend.addTo(map);
+ // Transform the TOD data to add valid geometry
+function transformTODData(data) {
+    data.features.forEach(feature => {
+        if (!feature.geometry && feature.properties.latitude && feature.properties.longitude) {
+            feature.geometry = {
+                type: "Point",
+                coordinates: [feature.properties.longitude, feature.properties.latitude] // Longitude, Latitude
+            };
+        }
+    });
+    return data;
+}
+
+
+// Add TOD points with a slider
+if (window.TOD) {
+    const todLayerGroup = L.layerGroup().addTo(map); // Layer group for TOD points
+
+    // Function to filter and update TOD points based on the selected year
+    function updateTODLayer(year) {
+        todLayerGroup.clearLayers(); // Clear existing points
+        const filteredFeatures = window.TOD.features.filter(feature => feature.properties.year <= year);
+        const filteredGeoJSON = { type: "FeatureCollection", features: filteredFeatures };
+
+        L.geoJSON(filteredGeoJSON, {
+            pointToLayer: (feature, latlng) => {
+                const isAfter2009 = feature.properties.year > 2009;
+                return L.circleMarker(latlng, {
+                    radius: 6,
+                    fillColor: isAfter2009 ? "blue" : "cyan", // Different color for developments after 2009
+                    color: isAfter2009 ? "darkgreen" : "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                });
+            },
+            onEachFeature: (feature, layer) => {
+                layer.bindPopup(`
+                    <b>${feature.properties.name}</b><br>
+                    Year: ${feature.properties.year}<br>
+                    Address: ${feature.properties.address}<br>
+                    Type: ${feature.properties.devType}
+                `);
+            }
+        }).addTo(todLayerGroup);
+    }
+
+    // Add a slider to filter TOD points by year
+    const sliderContainer = L.control({ position: 'topright' });
+    sliderContainer.onAdd = function () {
+        const div = L.DomUtil.create('div', 'info slider-container');
+        div.innerHTML = `
+            <label for="yearSlider">Year:</label><br>
+            <input id="yearSlider" type="range" min="1996" max="2015" step="1" value="1997" />
+            <span id="yearValue">1997</span>
+        `;
+        return div;
+    };
+    sliderContainer.addTo(map);
+
+
+
+    // Initialize slider
+    const yearSlider = document.getElementById('yearSlider');
+    const yearValue = document.getElementById('yearValue');
+
+    // Update map when slider value changes
+    yearSlider.addEventListener('input', (e) => {
+        const year = parseInt(e.target.value, 10);
+        yearValue.textContent = year; // Update displayed year
+        updateTODLayer(year); // Update TOD points
+    });
+
+
+        // Prevent map interactions when using the slider
+    L.DomEvent.disableClickPropagation(yearSlider);
+    L.DomEvent.disableScrollPropagation(yearSlider);
+
+    // Disable map dragging when interacting with the slider
+    yearSlider.addEventListener('mousedown', function(e) {
+        map.dragging.disable();
+    });
+
+    window.addEventListener('mouseup', function(e) {
+        map.dragging.enable();
+    });
+
+
+    // Start with an empty map (no points)
+    updateTODLayer(1996); // No points will be added initially since the minimum year is 1997
+} else {
+    console.error("TOD data not loaded");
+}
+
+
+</script>
+
+
+</body>
+</html>
